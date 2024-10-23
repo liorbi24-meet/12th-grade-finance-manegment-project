@@ -61,7 +61,7 @@
         android:layout_marginTop="32dp"
         android:textStyle="bold"
         app:layout_constraintTop_toBottomOf="@+id/linearIncomeExpenses"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" >
 
     <!-- RecyclerView for recent transactions -->
     <androidx.recyclerview.widget.RecyclerView
