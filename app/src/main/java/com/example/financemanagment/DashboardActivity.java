@@ -1,52 +1,68 @@
 package com.example.financemanagment;
-
 import android.os.Bundle;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 
 public class DashboardActivity extends AppCompatActivity {
 
-    private TextView tvTotalBalance;
-    private TextView tvIncome;
-    private TextView tvExpenses;
-    private RecyclerView recyclerViewTransactions;
-    private TransactionAdapter transactionAdapter;
-    private List<Transaction> transactionList;
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
+    private TextView tvTotalBalance, tvIncome, tvExpenses;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
+        // Initialize Firestore
+        db = FirebaseFirestore.getInstance();
+        //initialize Firebase Authentication
+        auth = FirebaseAuth.getInstance();
+        // Initialize TextViews
         tvTotalBalance = findViewById(R.id.tvTotalBalance);
         tvIncome = findViewById(R.id.tvIncome);
         tvExpenses = findViewById(R.id.tvExpenses);
-        recyclerViewTransactions = findViewById(R.id.recyclerViewTransactions);
 
-        // Sample data for income and expenses
-        double income = 2000.00;
-        double expenses = 1200.00;
-        double totalBalance = income - expenses;
+        // Assuming the current user is logged in and we have their userID
+        String userId = auth.getInstance().getCurrentUser().getUid();
 
-        // Set values for balance, income, and expenses
-        tvTotalBalance.setText("Total Balance: $" + String.format("%.2f", totalBalance));
-        tvIncome.setText("Income: $" + String.format("%.2f", income));
-        tvExpenses.setText("Expenses: $" + String.format("%.2f", expenses));
+        // Fetch data from Firebase for the current user
+        fetchUserDataFromFirebase(userId);
+    }
 
-        // Initialize transaction list and adapter
-        transactionList = new ArrayList<>();
-        transactionList.add(new Transaction("Groceries", -50.00, "2024-10-20"));
-        transactionList.add(new Transaction("Salary", 2000.00, "2024-10-15"));
-        transactionList.add(new Transaction("Coffee", -5.00, "2024-10-10"));
+    private void fetchUserDataFromFirebase(String userId) {
+        // Reference to the user's document in the "users" collection
+        DocumentReference userRef = db.collection("users").document(userId);
 
-        transactionAdapter = new TransactionAdapter(transactionList);
-        recyclerViewTransactions.setLayoutManager(new LinearLayoutManager(this));
-        recyclerViewTransactions.setAdapter(transactionAdapter);
+        // Fetch the document
+        userRef.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DocumentSnapshot document = task.getResult();
+                if (document.exists()) {
+                    // Retrieve income, expenses, and total balance
+                    double income = document.getDouble("income");
+                    double expenses = document.getDouble("expenses");
+                    double totalBalance = document.getDouble("totalBalance");
+
+                    // Update UI with the retrieved data
+                    tvIncome.setText("Income: $" + String.format("%.2f", income));
+                    tvExpenses.setText("Expenses: $" + String.format("%.2f", expenses));
+                    tvTotalBalance.setText("Total Balance: $" + String.format("%.2f", totalBalance));
+                } else {
+                    // Handle the case where the document doesn't exist
+                    tvTotalBalance.setText("Data not found");
+                }
+            } else {
+                // Handle the error
+                tvTotalBalance.setText("Error: " + task.getException().getMessage());
+            }
+        });
     }
 }
